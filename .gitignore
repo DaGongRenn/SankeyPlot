@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 产出文件(每次运行会重新生成)
+out/*.mp4
+out/*.png
+out/*.meta.json
+
+# 每日数据文件(采集产物,不上传git)
+data/CONCEPT_*.jsonl
+data/INDUSTRY_*.jsonl
+data/MARKET_*.jsonl
+
+# 临时对比数据
+data/_source_comparison.json
+data/_em_all_names.txt
+data/_all_boards_comparison.txt
+
+# 环境变量/密钥
+.env
+*.secret
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reasonix / IDE local
+.claude/
+.reasonix/
