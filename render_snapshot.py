@@ -9,7 +9,29 @@ import sankey
 import config
 from run_window import date_label
 
-date_str = sys.argv[1].strip() if len(sys.argv) > 1 and sys.argv[1].strip() else snapshots.today_str()
+_today = snapshots.today_str()
+_date_str = sys.argv[1].strip() if len(sys.argv) > 1 and sys.argv[1].strip() else _today
+
+# 如果用户没传日期且今天不是交易日，自动推断最近交易日作为标题日期
+if not (len(sys.argv) > 1 and sys.argv[1].strip()):
+    try:
+        from collector import is_trading_day
+        if not is_trading_day(_today):
+            # 往前找最近交易日（最多回退 10 天）
+            from datetime import datetime, timedelta
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(config.TZ)
+            dt = datetime.strptime(_today, "%Y-%m-%d").replace(tzinfo=tz)
+            for i in range(1, 11):
+                prev = (dt - timedelta(days=i)).strftime("%Y-%m-%d")
+                if is_trading_day(prev):
+                    _date_str = prev
+                    print(f"今天({_today})非交易日，标题使用最近交易日: {_date_str}")
+                    break
+    except Exception:
+        pass  # 推断失败则退化为当天
+
+date_str = _date_str
 print("日期:", date_str)
 
 boards, src = datasource.fetch_snapshot("concept")     # 当前=收盘后即今日收盘累计
