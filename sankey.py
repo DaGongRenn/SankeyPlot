@@ -230,33 +230,6 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
 
     ln, lr, lh = build_side(outflow_names, left_vals, left_ex, L["left_x"], True)
     rn, rr, rh = build_side(inflow_names, right_vals, right_ex, L["right_x"], False)
-
-    # 两侧等高:取节点数多的一侧总高度(含间隙)为准,另一侧均匀拉伸间隙对齐
-    l_total = lh + gap * max(0, len(ln) - 1)
-    r_total = rh + gap * max(0, len(rn) - 1)
-    if abs(l_total - r_total) > 0.5 and len(ln) != len(rn):
-        max_total = max(l_total, r_total)
-        # 拉伸较短一侧的间隙(保持 bands 高度不变)
-        for side_nodes, side_h, total_h in [(ln, lh, l_total), (rn, rh, r_total)]:
-            if total_h < max_total - 0.5 and len(side_nodes) > 1:
-                extra = (max_total - total_h) / (len(side_nodes) - 1)
-                y = center - max_total / 2.0
-                hy = center - side_h / 2.0
-                for nd in side_nodes:
-                    nd["y0"] = y
-                    y += nd["h"] + gap + extra
-                # 缎带同步调整(y_hub)
-                for rb in (lr if side_nodes is ln else rr):
-                    rb["y_hub"] = hy
-                    hy += rb["h_hub"]
-            elif len(side_nodes) <= 1:
-                # 只有1个节点:整体居中即可
-                y0 = center - max_total / 2.0 + (max_total - total_h) / 2.0
-                for nd in side_nodes:
-                    nd["y0"] = y0
-                for rb in (lr if side_nodes is ln else rr):
-                    rb["y_hub"] = center - side_h / 2.0
-
     # 中枢光柱:取较高一侧的缎带汇入高度,再放大一点点(hub_grow,默认 +3%)居中,
     # 略微盖住左右细微落差,但不喧宾夺主。
     hub_h = max(lh, rh) * L.get("hub_grow", 1.03)
@@ -336,47 +309,33 @@ def _background():
     return img
 
 
-def _label_two_color(d, x, y, name, val_str, color, anchor_left, band_h=50, unit="亿"):
+def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿"):
     """节点旁标注:板块名(白) + 数值(随色) + 单位「亿」(随色,中文字体略小)。
-    数字用科技字体、单位用中文字体(Bahnschrift 无 CJK 字形,混排会出豆腐块)。
-    自动缩字号防溢出:先看水平宽度,再看垂直(板块条太窄时进一步缩小)。"""
+    数字用科技字体、单位用中文字体(Bahnschrift 无 CJK 字形,混排会出豆腐块)。自动缩字号防溢出。"""
     margin = L.get("label_margin", 10)
     avail = (x - margin) if anchor_left else (config.W - margin - x)
     g1, g2 = 8, 3                                  # 名↔值、值↔单位 间距
-
-    # 字号上限不得超板块条高度的 2/3,防标签叠在一起
-    max_by_height = int(band_h * 0.66)
-    size = min(30, max_by_height)
-    size = max(size, 12)                            # 绝对下限 12px,再小看不清
-
-    while size >= 12:
+    size = 30
+    while size >= 20:
         fn, ft = font_cjk(size), font_tech(size)
-        fu = font_cjk(max(10, size - 6))
+        fu = font_cjk(max(16, size - 6))
         w = fn.getlength(name) + g1 + ft.getlength(val_str) + g2 + fu.getlength(unit)
         if w <= avail:
             break
         size -= 2
     fn, ft = font_cjk(size), font_tech(size)
-    fu = font_cjk(max(10, size - 6))
-
-    # 标签实际像素高度:取三个字体里最高的
-    label_h = max(fn.size, ft.size, fu.size)
-    # 标签居中于板块条,但不得超出条带边界
-    y_clamped = y
-    if label_h > band_h:
-        y_clamped = y                             # 标签比条还高,保持绝对居中,依赖字号上限避免过度重叠
-
+    fu = font_cjk(max(16, size - 6))
     white = C["text"]
     vw, uw = ft.getlength(val_str), fu.getlength(unit)
     if anchor_left:   # 右对齐,从 x 向左排:… 名  值 单位|x
-        d.text((x, y_clamped), unit, font=fu, fill=color, anchor="rm")
-        d.text((x - uw - g2, y_clamped), val_str, font=ft, fill=color, anchor="rm")
-        d.text((x - uw - g2 - vw - g1, y_clamped), name, font=fn, fill=white, anchor="rm")
+        d.text((x, y), unit, font=fu, fill=color, anchor="rm")
+        d.text((x - uw - g2, y), val_str, font=ft, fill=color, anchor="rm")
+        d.text((x - uw - g2 - vw - g1, y), name, font=fn, fill=white, anchor="rm")
     else:             # 左对齐:x|名  值 单位 …
-        d.text((x, y_clamped), name, font=fn, fill=white, anchor="lm")
+        d.text((x, y), name, font=fn, fill=white, anchor="lm")
         nx = x + fn.getlength(name) + g1
-        d.text((nx, y_clamped), val_str, font=ft, fill=color, anchor="lm")
-        d.text((nx + vw + g2, y_clamped), unit, font=fu, fill=color, anchor="lm")
+        d.text((nx, y), val_str, font=ft, fill=color, anchor="lm")
+        d.text((nx + vw + g2, y), unit, font=fu, fill=color, anchor="lm")
 
 
 # ====================================================================
@@ -474,8 +433,7 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
         name = nd["label"]                        # 配平节点用 label(主力抢筹/跑路),板块用板块名
         val_str = f"{nd['value']:+.1f}"
         _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
-                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
-                         band_h=nd["h"])
+                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"])
 
     _draw_overlays(d, scene, p)
     return img
