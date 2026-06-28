@@ -133,7 +133,14 @@ TRACKED_INDUSTRY = [
     "证券Ⅲ", "电网设备", "食品饮料", "房地产", "煤炭",
     "有色金属", "农业综合Ⅲ", "保险Ⅱ", "银行", "电力",
 ]
-TRACKED_BOARDS = TRACKED_CONCEPT + TRACKED_INDUSTRY   # 共31个,固定顺序
+TRACKED_BOARDS = TRACKED_CONCEPT + TRACKED_INDUSTRY   # 共29个,固定顺序
+
+# 显示简名:东财板块名 → 图上显示名
+BOARD_DISPLAY_ALIAS = {
+    "农业综合Ⅲ": "农业",
+    "证券Ⅲ": "证券",
+    "保险Ⅱ": "保险",
+}
 FETCH_INDUSTRY = True   # 采集时同时抓行业板块(为 TRACKED_INDUSTRY 提供数据)
 
 # (以下白名单/黑名单在固定清单模式下不再使用,保留仅供参考)
