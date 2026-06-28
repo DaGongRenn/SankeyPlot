@@ -463,7 +463,7 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
         name = config.BOARD_DISPLAY_ALIAS.get(name, name)  # 应用显示简名
         val_str = f"{nd['value']:+.1f}"
         _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
-                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
+                         ycen, name, val_str, nd["color"], anchor_left=not nd["is_left"],
                          rank=rank, total_side=total_side)
 
     _draw_overlays(d, scene, p)
