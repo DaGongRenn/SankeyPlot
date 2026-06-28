@@ -78,8 +78,8 @@ meta = {
     "session_label": session_label,         # "收盘" 或 "盘中"
     "kind": "concept",
     "out": str(out),
-    "inflow": scene.get("inflow", []),
-    "outflow": scene.get("outflow", []),
+    "inflow_top": scene.get("inflow", []),
+    "outflow_top": scene.get("outflow", []),
 }
 meta_path = config.OUT_DIR / f"{prefix}_{date_str}.meta.json"
 meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
