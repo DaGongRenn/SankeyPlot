@@ -461,12 +461,6 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
         total_side = left_count if nd["is_left"] else right_count
         rank = nd.get("rank", 0)
 
-        # 标签 y 偏移:板块条太窄时,交错上下错开防重叠
-        # 偶数位标签微偏上,奇数位微偏下(不超条带边界)
-        if nd["h"] < 36 and not nd.get("is_extra"):
-            offset = (nd["h"] * 0.2) * (1 if rank % 2 == 0 else -1)
-            ycen = ycen + offset
-
         name = nd["label"].removesuffix("概念")   # 去掉"概念"后缀
         name = config.BOARD_DISPLAY_ALIAS.get(name, name)  # 应用显示简名
         val_str = f"{nd['value']:+.1f}"
