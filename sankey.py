@@ -460,9 +460,25 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
         name = nd["label"].removesuffix("概念")   # 去掉"概念"后缀
         name = config.BOARD_DISPLAY_ALIAS.get(name, name)  # 应用显示简名
         val_str = f"{nd['value']:+.1f}"
-        _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
-                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
-                         rank=rank, total_side=total_side)
+
+        if nd.get("is_extra"):   # 配平节点「主力抢筹/跑路」→两行各两个字,30px
+            fn = font_cjk(30)
+            label1 = name[:2]   # 主力
+            label2 = name[2:]   # 抢筹/跑路
+            if nd["is_left"]:
+                # 左侧板块:右对齐
+                d.text((x1 - L["label_pad"], ycen - 18), label1, font=fn, fill=nd["color"], anchor="rm")
+                d.text((x1 - L["label_pad"], ycen + 18), label2, font=fn, fill=nd["color"], anchor="rm")
+                d.text((x1 - L["label_pad"] - fn.getlength(label1) - 10, ycen), val_str, font=fn, fill=nd["color"], anchor="rm")
+            else:
+                # 右侧板块:左对齐
+                d.text((x0 + L["label_pad"], ycen - 18), label1, font=fn, fill=nd["color"], anchor="lm")
+                d.text((x0 + L["label_pad"], ycen + 18), label2, font=fn, fill=nd["color"], anchor="lm")
+                d.text((x0 + L["label_pad"] + fn.getlength(label1) + 10, ycen), val_str, font=fn, fill=nd["color"], anchor="lm")
+        else:
+            _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
+                             ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
+                             rank=rank, total_side=total_side)
 
     _draw_overlays(d, scene, p)
     return img
