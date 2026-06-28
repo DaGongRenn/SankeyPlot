@@ -465,16 +465,17 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
             fn = font_cjk(30)
             label1 = name[:2]   # 主力
             label2 = name[2:]   # 抢筹/跑路
+            anchor_x = (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"])
             if nd["is_left"]:
-                # 左侧板块:右对齐
-                d.text((x1 - L["label_pad"], ycen - 18), label1, font=fn, fill=nd["color"], anchor="rm")
-                d.text((x1 - L["label_pad"], ycen + 18), label2, font=fn, fill=nd["color"], anchor="rm")
-                d.text((x1 - L["label_pad"] - fn.getlength(label1) - 10, ycen), val_str, font=fn, fill=nd["color"], anchor="rm")
+                # 左侧:右对齐,和其他板块一致
+                d.text((anchor_x, ycen - 18), label1, font=fn, fill=nd["color"], anchor="rm")
+                d.text((anchor_x, ycen + 18), label2, font=fn, fill=nd["color"], anchor="rm")
+                d.text((anchor_x - fn.getlength(label1) - 10, ycen), val_str, font=fn, fill=nd["color"], anchor="rm")
             else:
-                # 右侧板块:左对齐
-                d.text((x0 + L["label_pad"], ycen - 18), label1, font=fn, fill=nd["color"], anchor="lm")
-                d.text((x0 + L["label_pad"], ycen + 18), label2, font=fn, fill=nd["color"], anchor="lm")
-                d.text((x0 + L["label_pad"] + fn.getlength(label1) + 10, ycen), val_str, font=fn, fill=nd["color"], anchor="lm")
+                # 右侧:左对齐
+                d.text((anchor_x, ycen - 18), label1, font=fn, fill=nd["color"], anchor="lm")
+                d.text((anchor_x, ycen + 18), label2, font=fn, fill=nd["color"], anchor="lm")
+                d.text((anchor_x + fn.getlength(label1) + 10, ycen), val_str, font=fn, fill=nd["color"], anchor="lm")
         else:
             _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
                              ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
