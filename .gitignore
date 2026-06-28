@@ -38,3 +38,6 @@ Thumbs.db
 # Reasonix / IDE local
 .claude/
 .reasonix/
+
+# 本地版文件夹(不推送到GitHub,仅本地使用)
+local/
