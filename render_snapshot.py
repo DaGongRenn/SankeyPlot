@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-"""render_snapshot.py —— 抓"当前"概念资金流(收盘后=当日收盘值)渲染一张收盘静态图。
-单帧、无需盘中时间序列;在 GitHub(能连同花顺)上跑。用法:python render_snapshot.py [YYYY-MM-DD]
+"""render_snapshot.py —— 抓"当前"概念资金流渲染一张静态桑基图。
+盘中(15:00前)输出 snapshot_前缀 + 标题"盘中";收盘后输出 close_前缀 + 标题"收盘"。
+用法:python render_snapshot.py [YYYY-MM-DD]
 """
+import json
 import sys
 import datasource
 import snapshots
@@ -9,15 +11,14 @@ import sankey
 import config
 from run_window import date_label
 
+# ── 日期推断 ──
 _today = snapshots.today_str()
 _date_str = sys.argv[1].strip() if len(sys.argv) > 1 and sys.argv[1].strip() else _today
 
-# 如果用户没传日期且今天不是交易日，自动推断最近交易日作为标题日期
 if not (len(sys.argv) > 1 and sys.argv[1].strip()):
     try:
         from collector import is_trading_day
         if not is_trading_day(_today):
-            # 往前找最近交易日（最多回退 10 天）
             from datetime import datetime, timedelta
             from zoneinfo import ZoneInfo
             tz = ZoneInfo(config.TZ)
@@ -29,16 +30,26 @@ if not (len(sys.argv) > 1 and sys.argv[1].strip()):
                     print(f"今天({_today})非交易日，标题使用最近交易日: {_date_str}")
                     break
     except Exception:
-        pass  # 推断失败则退化为当天
+        pass
 
 date_str = _date_str
 print("日期:", date_str)
 
-boards, src = datasource.fetch_snapshot("concept")     # 当前=收盘后即今日收盘累计
+# ── 判断盘中还是收盘 ──
+now = snapshots.now_tz()
+now_min = now.hour * 60 + now.minute
+# 收盘时间 = 15:00 = 900 分钟；收盘后在 15:00 之后
+IS_CLOSE = now_min >= 15 * 60   # 15:00 及之后算收盘
+prefix = "close" if IS_CLOSE else "snapshot"
+session_label = "收盘" if IS_CLOSE else "盘中"
+clock_str = "15:00" if IS_CLOSE else now.strftime("%H:%M")
+print(f"当前 {now.strftime('%H:%M')} → 模式={session_label} 前缀={prefix} 时钟={clock_str}")
+
+# ── 抓数据 ──
+boards, src = datasource.fetch_snapshot("concept")
 print("主图数据 OK,来源:", src, "(em=东财自动Top-N / ths=同花顺套白名单) 板块数:", len(boards))
 top = sorted(boards.items(), key=lambda kv: kv[1], reverse=True)[:5]
 print("流入Top5:", [(n, round(v, 1)) for n, v in top])
-# 一次性打印东财全部板块名(净流入降序),用于把白名单对齐到东财真实叫法
 print("=== 东财全部板块(整段发我做映射)BEGIN ===")
 print(" / ".join(f"{n}{v:+.0f}" for n, v in sorted(boards.items(), key=lambda kv: kv[1], reverse=True)))
 print("=== END ===")
@@ -51,8 +62,25 @@ try:
 except Exception as e:
     print("氛围条失败(忽略,不影响主图):", e)
 
-kf = [(1.0, boards, "15:00")]                          # 单关键帧=收盘态
-scene = sankey.prepare_scene(kf, "close", date_label(date_str), src, mkf, [])
-out = config.OUT_DIR / f"close_{date_str}.png"
+# ── 渲染 ──
+kf = [(1.0, boards, clock_str)]
+label = f"{date_label(date_str)} {session_label}"
+scene = sankey.prepare_scene(kf, "close", label, src, mkf, [])
+out = config.OUT_DIR / f"{prefix}_{date_str}.png"
 sankey.draw_frame(scene, config.TOTAL_FRAMES - 1).save(out)
 print("已生成静态图:", out)
+
+# ── meta.json (供发邮件读取) ──
+meta = {
+    "date": date_str,
+    "date_label": date_label(date_str),
+    "session": prefix,                     # "close" 或 "snapshot"
+    "session_label": session_label,         # "收盘" 或 "盘中"
+    "kind": "concept",
+    "out": str(out),
+    "inflow": scene.get("inflow", []),
+    "outflow": scene.get("outflow", []),
+}
+meta_path = config.OUT_DIR / f"{prefix}_{date_str}.meta.json"
+meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+print("已生成 meta:", meta_path)
