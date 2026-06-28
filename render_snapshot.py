@@ -41,7 +41,8 @@ now_min = now.hour * 60 + now.minute
 # 收盘时间 = 15:00 = 900 分钟；收盘后在 15:00 之后
 IS_CLOSE = now_min >= 15 * 60   # 15:00 及之后算收盘
 prefix = "close" if IS_CLOSE else "snapshot"
-session_label = "收盘" if IS_CLOSE else "盘中"
+session_key = "close" if IS_CLOSE else "midday"     # 传给 sankey.prepare_scene
+session_label = "收盘" if IS_CLOSE else "盘中"        # 仅用于 meta
 clock_str = "15:00" if IS_CLOSE else now.strftime("%H:%M")
 print(f"当前 {now.strftime('%H:%M')} → 模式={session_label} 前缀={prefix} 时钟={clock_str}")
 
@@ -64,8 +65,8 @@ except Exception as e:
 
 # ── 渲染 ──
 kf = [(1.0, boards, clock_str)]
-label = f"{date_label(date_str)} {session_label}"
-scene = sankey.prepare_scene(kf, "close", label, src, mkf, [])
+label = date_label(date_str)   # 只传纯日期，prepare_scene 内部拼 SESSION_LABEL
+scene = sankey.prepare_scene(kf, session_key, label, src, mkf, [])
 out = config.OUT_DIR / f"{prefix}_{date_str}.png"
 sankey.draw_frame(scene, config.TOTAL_FRAMES - 1).save(out)
 print("已生成静态图:", out)
