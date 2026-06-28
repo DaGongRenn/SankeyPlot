@@ -230,6 +230,33 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
 
     ln, lr, lh = build_side(outflow_names, left_vals, left_ex, L["left_x"], True)
     rn, rr, rh = build_side(inflow_names, right_vals, right_ex, L["right_x"], False)
+
+    # 两侧等高:取节点数多的一侧总高度(含间隙)为准,另一侧均匀拉伸间隙对齐
+    l_total = lh + gap * max(0, len(ln) - 1)
+    r_total = rh + gap * max(0, len(rn) - 1)
+    if abs(l_total - r_total) > 0.5 and len(ln) != len(rn):
+        max_total = max(l_total, r_total)
+        # 拉伸较短一侧的间隙(保持 bands 高度不变)
+        for side_nodes, side_h, total_h in [(ln, lh, l_total), (rn, rh, r_total)]:
+            if total_h < max_total - 0.5 and len(side_nodes) > 1:
+                extra = (max_total - total_h) / (len(side_nodes) - 1)
+                y = center - max_total / 2.0
+                hy = center - side_h / 2.0
+                for nd in side_nodes:
+                    nd["y0"] = y
+                    y += nd["h"] + gap + extra
+                # 缎带同步调整(y_hub)
+                for rb in (lr if side_nodes is ln else rr):
+                    rb["y_hub"] = hy
+                    hy += rb["h_hub"]
+            elif len(side_nodes) <= 1:
+                # 只有1个节点:整体居中即可
+                y0 = center - max_total / 2.0 + (max_total - total_h) / 2.0
+                for nd in side_nodes:
+                    nd["y0"] = y0
+                for rb in (lr if side_nodes is ln else rr):
+                    rb["y_hub"] = center - side_h / 2.0
+
     # 中枢光柱:取较高一侧的缎带汇入高度,再放大一点点(hub_grow,默认 +3%)居中,
     # 略微盖住左右细微落差,但不喧宾夺主。
     hub_h = max(lh, rh) * L.get("hub_grow", 1.03)
