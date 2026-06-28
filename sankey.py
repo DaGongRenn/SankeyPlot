@@ -326,7 +326,7 @@ def _background():
     return img
 
 
-def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
+def _label_two_color(d, x, y, name, val_str, color, anchor_left,
                      rank=0, total_side=0):
     """节点旁标注:板块名(白) + 金额+单位(统一中文字体)。
     自动缩字号防溢出。一侧超15个板块时,第11名起字号降为22px起。
@@ -344,24 +344,19 @@ def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
 
     while size >= 16:
         fn = font_cjk(size)
-        w = fn.getlength(name) + g1 + fn.getlength(val_str) + fn.getlength(unit)
+        w = fn.getlength(name) + g1 + fn.getlength(val_str)
         if w <= avail:
             break
         size -= 2
     fn = font_cjk(size)
     white = C["text"]
-    g2 = 4
 
-    if anchor_left:   # 左侧板块: …名  +12.3  亿|x
+    if anchor_left:   # 左侧: … +12.3  板块名|x
         d.text((x, y), name, font=fn, fill=white, anchor="rm")
-        nx = x - fn.getlength(name) - g1
-        d.text((nx, y), val_str, font=fn, fill=color, anchor="rm")
-        d.text((nx - fn.getlength(val_str) - g2, y), unit, font=fn, fill=color, anchor="rm")
-    else:             # 右侧板块: x|名  +12.3  亿 …
+        d.text((x - fn.getlength(name) - g1, y), val_str, font=fn, fill=color, anchor="rm")
+    else:             # 右侧: x|板块名  +12.3 …
         d.text((x, y), name, font=fn, fill=white, anchor="lm")
-        nx = x + fn.getlength(name) + g1
-        d.text((nx, y), val_str, font=fn, fill=color, anchor="lm")
-        d.text((nx + fn.getlength(val_str) + g2, y), unit, font=fn, fill=color, anchor="lm")
+        d.text((x + fn.getlength(name) + g1, y), val_str, font=fn, fill=color, anchor="lm")
 
 
 # ====================================================================
@@ -479,11 +474,11 @@ def _draw_overlays(d, scene, p):
     d.text((config.W / 2, 120), scene["title"], font=font_cjk(60),
            fill=C["title"], anchor="mm")
     # 图例
-    lx = config.W / 2 - 150
+    lx = config.W / 2 - 180
     d.ellipse([lx, 178, lx + 22, 200], fill=(*C["inflow"], 255))
-    d.text((lx + 32, 189), "净流入", font=font_cjk(28), fill=C["text"], anchor="lm")
-    d.ellipse([lx + 170, 178, lx + 192, 200], fill=(*C["outflow"], 255))
-    d.text((lx + 204, 189), "净流出", font=font_cjk(28), fill=C["text"], anchor="lm")
+    d.text((lx + 32, 189), "净流入(亿)", font=font_cjk(28), fill=C["text"], anchor="lm")
+    d.ellipse([lx + 210, 178, lx + 232, 200], fill=(*C["outflow"], 255))
+    d.text((lx + 244, 189), "净流出(亿)", font=font_cjk(28), fill=C["text"], anchor="lm")
     # 右上角随帧时间戳
     clock = progress_to_clock(p, scene["session"])
     d.text((config.W - 28, 70), clock, font=font_tech(46), fill=C["hub"], anchor="rm")
