@@ -342,21 +342,23 @@ def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
 
     while size >= 16:
         fn = font_cjk(size)
-        amt_text = val_str + unit                     # "+12.3亿" 整体
-        w = fn.getlength(name) + g1 + fn.getlength(amt_text)
+        w = fn.getlength(name) + g1 + fn.getlength(val_str) + fn.getlength(unit)
         if w <= avail:
             break
         size -= 2
     fn = font_cjk(size)
-    amt_text = val_str + unit
     white = C["text"]
+    vw = fn.getlength(val_str)
 
-    if anchor_left:   # 右侧板块: x|名  +12.3亿 …
+    if anchor_left:   # 右侧板块: x| 名  值 亿 …
         d.text((x, y), name, font=fn, fill=white, anchor="lm")
-        d.text((x + fn.getlength(name) + g1, y), amt_text, font=fn, fill=color, anchor="lm")
-    else:             # 左侧板块: …名  +12.3亿|x
+        nx = x + fn.getlength(name) + g1
+        d.text((nx, y), val_str, font=fn, fill=color, anchor="lm")
+        d.text((nx + vw, y), unit, font=fn, fill=color, anchor="lm")
+    else:             # 左侧板块: …亿 值  名|x
         d.text((x, y), name, font=fn, fill=white, anchor="rm")
-        d.text((x - fn.getlength(name) - g1, y), amt_text, font=fn, fill=color, anchor="rm")
+        d.text((x - fn.getlength(name) - g1, y), val_str, font=fn, fill=color, anchor="rm")
+        d.text((x - fn.getlength(name) - g1 - vw, y), unit, font=fn, fill=color, anchor="rm")
 
 
 # ====================================================================
