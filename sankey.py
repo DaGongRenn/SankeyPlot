@@ -328,39 +328,35 @@ def _background():
 
 def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
                      rank=0, total_side=0):
-    """节点旁标注:板块名(白) + 数值(随色) + 单位「亿」(随色,中文字体略小)。
-    数字用科技字体、单位用中文字体(Bahnschrift 无 CJK 字形,混排会出豆腐块)。
-    自动缩字号防溢出。一侧超20个板块时,第11名起字号缩小一档。"""
+    """节点旁标注:板块名(白·居中) + 金额+单位(统一中文字体·右对齐)。
+    自动缩字号防溢出。一侧超15个板块时,第11名起字号降为22px起。"""
     margin = L.get("label_margin", 10)
     avail = (x - margin) if anchor_left else (config.W - margin - x)
-    g1, g2 = 8, 3
+    g1 = 10
 
-    # 起手字号:超20个板块一侧的第11名起缩小
-    if total_side > 20 and rank >= 10:
-        size = 24
+    # 起手字号
+    if total_side > 15 and rank >= 10:
+        size = 22
     else:
         size = 30
 
-    while size >= 18:
-        fn, ft = font_cjk(size), font_tech(size)
-        fu = font_cjk(max(14, size - 6))
-        w = fn.getlength(name) + g1 + ft.getlength(val_str) + g2 + fu.getlength(unit)
+    while size >= 16:
+        fn = font_cjk(size)
+        amt_text = val_str + unit                     # "+12.3亿" 整体
+        w = fn.getlength(name) + g1 + fn.getlength(amt_text)
         if w <= avail:
             break
         size -= 2
-    fn, ft = font_cjk(size), font_tech(size)
-    fu = font_cjk(max(14, size - 6))
+    fn = font_cjk(size)
+    amt_text = val_str + unit
     white = C["text"]
-    vw, uw = ft.getlength(val_str), fu.getlength(unit)
-    if anchor_left:
-        d.text((x, y), unit, font=fu, fill=color, anchor="rm")
-        d.text((x - uw - g2, y), val_str, font=ft, fill=color, anchor="rm")
-        d.text((x - uw - g2 - vw - g1, y), name, font=fn, fill=white, anchor="rm")
-    else:
+
+    if anchor_left:   # 右侧板块: x|名  +12.3亿 …
         d.text((x, y), name, font=fn, fill=white, anchor="lm")
-        nx = x + fn.getlength(name) + g1
-        d.text((nx, y), val_str, font=ft, fill=color, anchor="lm")
-        d.text((nx + vw + g2, y), unit, font=fu, fill=color, anchor="lm")
+        d.text((x + fn.getlength(name) + g1, y), amt_text, font=fn, fill=color, anchor="lm")
+    else:             # 左侧板块: …名  +12.3亿|x
+        d.text((x, y), name, font=fn, fill=white, anchor="rm")
+        d.text((x - fn.getlength(name) - g1, y), amt_text, font=fn, fill=color, anchor="rm")
 
 
 # ====================================================================
