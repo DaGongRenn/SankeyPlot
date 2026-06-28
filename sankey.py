@@ -350,12 +350,12 @@ def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
     white = C["text"]
     g2 = 4
 
-    if anchor_left:   # 右侧板块: x| 名  +12.3  亿 …
+    if anchor_left:   # 右侧板块: 887| 名  +12.3  亿 …
         d.text((x, y), name, font=fn, fill=white, anchor="lm")
         nx = x + fn.getlength(name) + g1
         d.text((nx, y), val_str, font=fn, fill=color, anchor="lm")
         d.text((nx + fn.getlength(val_str) + g2, y), unit, font=fn, fill=color, anchor="lm")
-    else:             # 左侧板块: … 亿  +12.3  名|x
+    else:             # 左侧板块: … 亿  +12.3  名|193
         d.text((x, y), name, font=fn, fill=white, anchor="rm")
         d.text((x - fn.getlength(name) - g1, y), val_str, font=fn, fill=color, anchor="rm")
         d.text((x - fn.getlength(name) - g1 - fn.getlength(val_str) - g2, y), unit, font=fn, fill=color, anchor="rm")
