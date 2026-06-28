@@ -213,7 +213,7 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
         hy = center - sum_h / 2.0                  # 缎带在 hub 侧无间隙紧贴、居中
         ex_map = {e["id"]: e for e in exs}
         nodes, ribbons = [], []
-        for nm, h in zip(names, heights):
+        for idx, (nm, h) in enumerate(zip(names, heights)):
             ex = ex_map.get(nm)
             if ex:                                 # 配平节点:主力抢筹 / 主力跑路
                 col, disp, label, is_extra = ex["color"], ex["value"], ex["label"], True
@@ -221,7 +221,8 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
                 col = C["outflow"] if is_left else C["inflow"]
                 disp, label, is_extra = values[nm], nm, False
             nodes.append({"name": nm, "label": label, "x": x_center, "y0": y, "h": h,
-                          "color": col, "value": disp, "is_left": is_left, "is_extra": is_extra})
+                          "color": col, "value": disp, "is_left": is_left, "is_extra": is_extra,
+                          "rank": idx})
             ribbons.append({"is_left": is_left, "color": col, "x_node": node_inner, "y_node": y,
                             "h_node": h, "x_hub": hub_edge, "y_hub": hy, "h_hub": h})
             y += h + gap
@@ -309,29 +310,37 @@ def _background():
     return img
 
 
-def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿"):
+def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
+                     rank=0, total_side=0):
     """节点旁标注:板块名(白) + 数值(随色) + 单位「亿」(随色,中文字体略小)。
-    数字用科技字体、单位用中文字体(Bahnschrift 无 CJK 字形,混排会出豆腐块)。自动缩字号防溢出。"""
+    数字用科技字体、单位用中文字体(Bahnschrift 无 CJK 字形,混排会出豆腐块)。
+    自动缩字号防溢出。一侧超20个板块时,第11名起字号缩小一档。"""
     margin = L.get("label_margin", 10)
     avail = (x - margin) if anchor_left else (config.W - margin - x)
-    g1, g2 = 8, 3                                  # 名↔值、值↔单位 间距
-    size = 30
-    while size >= 20:
+    g1, g2 = 8, 3
+
+    # 起手字号:超20个板块一侧的第11名起缩小
+    if total_side > 20 and rank >= 10:
+        size = 24
+    else:
+        size = 30
+
+    while size >= 18:
         fn, ft = font_cjk(size), font_tech(size)
-        fu = font_cjk(max(16, size - 6))
+        fu = font_cjk(max(14, size - 6))
         w = fn.getlength(name) + g1 + ft.getlength(val_str) + g2 + fu.getlength(unit)
         if w <= avail:
             break
         size -= 2
     fn, ft = font_cjk(size), font_tech(size)
-    fu = font_cjk(max(16, size - 6))
+    fu = font_cjk(max(14, size - 6))
     white = C["text"]
     vw, uw = ft.getlength(val_str), fu.getlength(unit)
-    if anchor_left:   # 右对齐,从 x 向左排:… 名  值 单位|x
+    if anchor_left:
         d.text((x, y), unit, font=fu, fill=color, anchor="rm")
         d.text((x - uw - g2, y), val_str, font=ft, fill=color, anchor="rm")
         d.text((x - uw - g2 - vw - g1, y), name, font=fn, fill=white, anchor="rm")
-    else:             # 左对齐:x|名  值 单位 …
+    else:
         d.text((x, y), name, font=fn, fill=white, anchor="lm")
         nx = x + fn.getlength(name) + g1
         d.text((nx, y), val_str, font=ft, fill=color, anchor="lm")
@@ -425,15 +434,28 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
            font=font_cjk(24), fill=C["text_dim"], anchor="lm")
 
     # ---- 节点条带 + 描边 + 标注 ----
+    # 统计每侧节点数(用于字体分级)
+    left_count = sum(1 for nd in lay["nodes"] if nd["is_left"])
+    right_count = sum(1 for nd in lay["nodes"] if not nd["is_left"])
     for nd in lay["nodes"]:
         x0, x1 = nd["x"] - L["node_w"] / 2, nd["x"] + L["node_w"] / 2
         d.rectangle([x0, nd["y0"], x1, nd["y0"] + nd["h"]],
                     fill=(*nd["color"], 255), outline=(255, 255, 255, 60), width=1)
         ycen = nd["y0"] + nd["h"] / 2
-        name = nd["label"]                        # 配平节点用 label(主力抢筹/跑路),板块用板块名
+        total_side = left_count if nd["is_left"] else right_count
+        rank = nd.get("rank", 0)
+
+        # 标签 y 偏移:板块条太窄时,交错上下错开防重叠
+        # 偶数位标签微偏上,奇数位微偏下(不超条带边界)
+        if nd["h"] < 36 and not nd.get("is_extra"):
+            offset = (nd["h"] * 0.2) * (1 if rank % 2 == 0 else -1)
+            ycen = ycen + offset
+
+        name = nd["label"]
         val_str = f"{nd['value']:+.1f}"
         _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
-                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"])
+                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
+                         rank=rank, total_side=total_side)
 
     _draw_overlays(d, scene, p)
     return img
