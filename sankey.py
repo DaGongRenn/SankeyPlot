@@ -188,7 +188,6 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
     """
     stack_top, stack_bot = L["stack_top"], L["stack_bottom"]
     center = (stack_top + stack_bot) / 2.0
-    gap = L["node_gap"]
 
     left_vals = [abs(values[n]) for n in outflow_names]
     right_vals = [abs(values[n]) for n in inflow_names]
@@ -206,10 +205,20 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
         mags = list(sector_vals) + [e["draw_mag"] for e in exs]
         heights = [max(m * scale, config.MIN_BAND_PX) for m in mags]
         sum_h = sum(heights)
-        gaps = gap * max(0, len(heights) - 1)
+
+        # 逐节点间隙:触发MIN_BAND_PX的节点上下用更宽的gap防标签重叠
+        gap_norm = L.get("node_gap", 13)
+        gap_min = L.get("node_gap_min", 17)
+        clamped = [m * scale < config.MIN_BAND_PX for m in mags]
+        gaps_list = []
+        for i in range(len(heights) - 1):
+            g = gap_min if (clamped[i] or clamped[i + 1]) else gap_norm
+            gaps_list.append(g)
+        total_gaps = sum(gaps_list)
+
         node_inner = (x_center + L["node_w"] / 2.0) if is_left else (x_center - L["node_w"] / 2.0)
         hub_edge = hub_x0 if is_left else hub_x1
-        y = center - (sum_h + gaps) / 2.0          # 节点带间隙、整体居中
+        y = center - (sum_h + total_gaps) / 2.0
         hy = center - sum_h / 2.0                  # 缎带在 hub 侧无间隙紧贴、居中
         ex_map = {e["id"]: e for e in exs}
         nodes, ribbons = [], []
@@ -225,8 +234,10 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
                           "rank": idx})
             ribbons.append({"is_left": is_left, "color": col, "x_node": node_inner, "y_node": y,
                             "h_node": h, "x_hub": hub_edge, "y_hub": hy, "h_hub": h})
-            y += h + gap
+            y += h
             hy += h
+            if idx < len(heights) - 1:
+                y += gaps_list[idx]
         return nodes, ribbons, sum_h
 
     ln, lr, lh = build_side(outflow_names, left_vals, left_ex, L["left_x"], True)
