@@ -451,7 +451,7 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
             offset = (nd["h"] * 0.2) * (1 if rank % 2 == 0 else -1)
             ycen = ycen + offset
 
-        name = nd["label"]
+        name = nd["label"].removesuffix("概念")   # 显示时去掉"概念"后缀,更清爽
         val_str = f"{nd['value']:+.1f}"
         _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
                          ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
