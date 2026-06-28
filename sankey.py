@@ -207,13 +207,18 @@ def compute_layout(values, inflow_names, outflow_names, scale) -> dict:
         sum_h = sum(heights)
 
         # 逐节点间隙:触发MIN_BAND_PX的节点上下用更宽的gap防标签重叠
+        # 如果该侧总节点数<5,则全部用20px(板块少时更舒展)
         gap_norm = L.get("node_gap", 13)
         gap_min = L.get("node_gap_min", 17)
-        clamped = [m * scale < config.MIN_BAND_PX for m in mags]
-        gaps_list = []
-        for i in range(len(heights) - 1):
-            g = gap_min if (clamped[i] or clamped[i + 1]) else gap_norm
-            gaps_list.append(g)
+        gap_few = L.get("node_gap_few", 20)
+        if len(heights) < 5:
+            gaps_list = [gap_few] * max(0, len(heights) - 1)
+        else:
+            clamped = [m * scale < config.MIN_BAND_PX for m in mags]
+            gaps_list = []
+            for i in range(len(heights) - 1):
+                g = gap_min if (clamped[i] or clamped[i + 1]) else gap_norm
+                gaps_list.append(g)
         total_gaps = sum(gaps_list)
 
         node_inner = (x_center + L["node_w"] / 2.0) if is_left else (x_center - L["node_w"] / 2.0)
