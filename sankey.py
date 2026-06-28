@@ -348,17 +348,16 @@ def _label_two_color(d, x, y, name, val_str, color, anchor_left, unit="亿",
         size -= 2
     fn = font_cjk(size)
     white = C["text"]
-    vw = fn.getlength(val_str)
+    vw, uw = fn.getlength(val_str), fn.getlength(unit)
 
-    if anchor_left:   # 右侧板块: x| 名  值 亿 …
+    if anchor_left:   # 右侧板块: x| 板块名  -12.3亿 …
         d.text((x, y), name, font=fn, fill=white, anchor="lm")
-        nx = x + fn.getlength(name) + g1
-        d.text((nx, y), val_str, font=fn, fill=color, anchor="lm")
-        d.text((nx + vw, y), unit, font=fn, fill=color, anchor="lm")
-    else:             # 左侧板块: …亿 值  名|x
+        d.text((x + fn.getlength(name) + g1, y), val_str, font=fn, fill=color, anchor="lm")
+        d.text((x + fn.getlength(name) + g1 + vw, y), unit, font=fn, fill=color, anchor="lm")
+    else:             # 左侧板块: … -12.3亿  板块名|x
         d.text((x, y), name, font=fn, fill=white, anchor="rm")
-        d.text((x - fn.getlength(name) - g1, y), val_str, font=fn, fill=color, anchor="rm")
-        d.text((x - fn.getlength(name) - g1 - vw, y), unit, font=fn, fill=color, anchor="rm")
+        d.text((x - fn.getlength(name) - g1, y), unit, font=fn, fill=color, anchor="rm")
+        d.text((x - fn.getlength(name) - g1 - uw, y), val_str, font=fn, fill=color, anchor="rm")
 
 
 # ====================================================================
