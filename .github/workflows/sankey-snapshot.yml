@@ -3,6 +3,9 @@ name: A股桑基·收盘静态图
 # 手动触发:抓"当前"概念资金流(收盘后=今日收盘值)渲染一张静态 PNG,传成 artifact 下载。
 # 盘后随时可跑;盘中跑则是"截至此刻"的快照。
 on:
+  push:
+    paths:
+      - '.github/workflows/sankey-snapshot.yml'
   workflow_dispatch:
     inputs:
       date:

@@ -3,6 +3,9 @@ name: A股桑基·午盘
 # 午盘视频:覆盖上午 09:30–11:30。约 09:10(北京时间)起跑采集器,
 # 采集器内部对齐到 09:30 才首采、轮询到 11:30,随即渲染并发邮件(约 11:32)。
 on:
+  push:
+    paths:
+      - '.github/workflows/sankey-midday.yml'
   schedule:
     - cron: '10 1 * * 1-5'        # 01:10 UTC = 09:10 北京时间,周一~周五(留 cron 抖动余量)
   workflow_dispatch:
