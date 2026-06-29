@@ -35,15 +35,39 @@ if not (len(sys.argv) > 1 and sys.argv[1].strip()):
 date_str = _date_str
 print("日期:", date_str)
 
-# ── 判断盘中还是收盘 ──
+# ── 判断盘中/午盘/收盘 ──
 now = snapshots.now_tz()
 now_min = now.hour * 60 + now.minute
-# 收盘时间 = 15:00 = 900 分钟；收盘后在 15:00 之后
-IS_CLOSE = now_min >= 15 * 60   # 15:00 及之后算收盘
-prefix = "close" if IS_CLOSE else "snapshot"
-session_key = "close" if IS_CLOSE else "midday"     # 传给 sankey.prepare_scene
-session_label = "收盘" if IS_CLOSE else "盘中"        # 仅用于 meta
-clock_str = "15:00" if IS_CLOSE else now.strftime("%H:%M")
+
+# 9:30-11:30 或 13:00-15:00 → 盘中 (intraday)
+# 11:31-12:59 → 午盘 (midday)
+# >=15:00 → 收盘 (close)
+# 非交易时段默认收盘
+MORNING_OPEN, MORNING_CLOSE = 9 * 60 + 30, 11 * 60 + 30   # 570, 690
+AFTERNOON_OPEN, AFTERNOON_CLOSE = 13 * 60, 15 * 60         # 780, 900
+
+if now_min >= AFTERNOON_CLOSE:
+    session_key = "close"
+    session_label = "收盘"
+    prefix = "close"
+    clock_str = "15:00"
+elif MORNING_CLOSE < now_min < AFTERNOON_OPEN:
+    session_key = "midday"
+    session_label = "午盘"
+    prefix = "snapshot"
+    clock_str = "11:30"
+elif MORNING_OPEN <= now_min <= MORNING_CLOSE or AFTERNOON_OPEN <= now_min < AFTERNOON_CLOSE:
+    session_key = "intraday"
+    session_label = "盘中"
+    prefix = "snapshot"
+    clock_str = now.strftime("%H:%M")
+else:
+    # 非交易时段 (0:00-9:29 等)，按收盘处理
+    session_key = "close"
+    session_label = "收盘"
+    prefix = "close"
+    clock_str = "15:00"
+
 print(f"当前 {now.strftime('%H:%M')} → 模式={session_label} 前缀={prefix} 时钟={clock_str}")
 
 # ── 抓数据 ──
