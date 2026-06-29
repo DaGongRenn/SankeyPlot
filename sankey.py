@@ -327,9 +327,10 @@ def _background():
 
 
 def _label_two_color(d, x, y, name, val_str, color, anchor_left,
-                     rank=0, total_side=0):
+                     rank=0, total_side=0, is_clamped=False):
     """节点旁标注:板块名(白) + 金额+单位(统一中文字体)。
     自动缩字号防溢出。一侧超15个板块时,第11名起字号降为22px起。
+    板块高度触底(MIN_BAND_PX)时字号降为20px起。
     anchor_left=True→左侧板块,标签右对齐: …名 +12.3亿|x
     anchor_left=False→右侧板块,标签左对齐: x|名 +12.3亿…"""
     margin = L.get("label_margin", 10)
@@ -337,7 +338,9 @@ def _label_two_color(d, x, y, name, val_str, color, anchor_left,
     g1 = 10
 
     # 起手字号
-    if total_side > 15 and rank >= 10:
+    if is_clamped:
+        size = 20
+    elif total_side > 15 and rank >= 10:
         size = 22
     else:
         size = 30
@@ -477,9 +480,10 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
                 d.text((anchor_x, ycen + 18), label2, font=fn, fill=nd["color"], anchor="lm")
                 d.text((anchor_x + fn.getlength(label1) + 10, ycen), val_str, font=fn, fill=nd["color"], anchor="lm")
         else:
+            is_clamped = nd["h"] <= config.MIN_BAND_PX + 0.5
             _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
                              ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
-                             rank=rank, total_side=total_side)
+                             rank=rank, total_side=total_side, is_clamped=is_clamped)
 
     _draw_overlays(d, scene, p)
     return img

@@ -318,11 +318,12 @@ def _background():
     return img
 
 
-def _label_two_color(d, x, y, name, val_str, color, anchor_left):
-    """节点旁标注:板块名(白) + 数值(随色)。自动缩字号避免溢出屏幕。"""
+def _label_two_color(d, x, y, name, val_str, color, anchor_left, is_clamped=False):
+    """节点旁标注:板块名(白) + 数值(随色)。自动缩字号避免溢出屏幕。
+    板块高度触底(MIN_BAND_PX)时字号降为20px起。"""
     margin = L.get("label_margin", 10)
     avail = (x - margin) if anchor_left else (config.W - margin - x)
-    size = 30
+    size = 20 if is_clamped else 30
     while size >= 20:
         fn, ft = font_cjk(size), font_tech(size)
         w = fn.getlength(name) + 8 + ft.getlength(val_str)
@@ -433,8 +434,10 @@ def draw_frame(scene: dict, frame_index: int) -> Image.Image:
         ycen = nd["y0"] + nd["h"] / 2
         name = nd["label"]                        # 残差节点用 label(其他/增量入场/资金离场),板块用板块名
         val_str = f"{nd['value']:+.1f}"
+        is_clamped = nd["h"] <= config.MIN_BAND_PX + 0.5
         _label_two_color(d, (x0 - L["label_pad"]) if nd["is_left"] else (x1 + L["label_pad"]),
-                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"])
+                         ycen, name, val_str, nd["color"], anchor_left=nd["is_left"],
+                         is_clamped=is_clamped)
 
     _draw_overlays(d, scene, p)
     return img
